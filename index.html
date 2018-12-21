@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <title>MarChat</title>
+  </head>
+  <body>
+    <ul id="messages"> </ul>
+    <form action="">
+      <input id="m" type="text" value=""/><button>Send</button></form>
+
+  </body>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  <script type="text/javascript">
+   var socket;
+   const messages = document.querySelector("ul#messages");
+   const msg = document.querySelector("#m");
+
+   document.querySelector("form").addEventListener('submit', (e) => {
+     e.preventDefault();
+     console.log(msg);
+     socket.send(msg.value);
+     msg.value = "";
+   });
+
+   async function main() {
+     socket = io();
+     socket.on('connect', () => {
+       console.log('Connected');
+     });
+
+     const ctx = new AudioContext();
+
+     socket.on("chatmsg", msg => {
+       console.log(msg);
+       let elt = document.createElement("li");
+       elt.innerHTML = msg;
+       messages.appendChild(elt);
+       return;
+     });
+      
+
+     socket.on("d", async (data) => {
+       console.log(data);
+       if (typeof data === "string") {
+       }
+       var src = ctx.createBufferSource();
+       src.buffer = await ctx.decodeAudioData(data);
+       src.connect(ctx.destination);
+       src.start(0);
+     });
+
+     const rec = new MediaRecorder(
+       await navigator.mediaDevices.getUserMedia({audio: true})
+     );
+
+     console.log(rec);
+     rec.start();
+
+     rec.ondataavailable = (e) => {
+       socket.send(e.data);
+     };
+
+     setInterval(() => {
+       rec.stop();
+       rec.start();
+     }, 1000);
+   }
+   
+   main();
+  </script>
+</html>
