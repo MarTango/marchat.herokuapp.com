@@ -25,7 +25,7 @@ def onmessage(msg):
         print(msg)
     else:
         print(type(msg))
-        flask_socketio.emit("d", msg)
+        flask_socketio.emit("d", msg, broadcast=True)
 
 
 socketio.run(app, host="0.0.0.0", port=os.environ.get("PORT", 8080))
