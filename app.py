@@ -2,9 +2,14 @@ import flask
 import flask_socketio
 from flask_socketio import SocketIO
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, static_url_path="/web")
 
 socketio = SocketIO(app)
+
+
+@app.route("/")
+def index():
+    return flask.send_from_directory("web", "index.html")
 
 
 @socketio.on("connect")
@@ -22,4 +27,4 @@ def onmessage(msg):
         flask_socketio.emit("d", msg)
 
 
-socketio.run(app, host="0.0.0.0", port=59880)
+socketio.run(app, host="0.0.0.0", port=80)
