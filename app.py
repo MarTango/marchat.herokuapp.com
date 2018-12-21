@@ -16,12 +16,12 @@ def index():
 @socketio.on("connect")
 def onconnect():
     print("Client connected")
-    flask_socketio.emit("chatmsg", "A user connected")
+    flask_socketio.emit("chatmsg", "A user connected", broadcast=True)
 
 
 @socketio.on("disconnect")
 def ondisconnect():
-    flask_socketio.emit("chatmsg", "A user disconnected")
+    flask_socketio.emit("chatmsg", "A user disconnected", broadcast=True)
 
 
 @socketio.on("message")
