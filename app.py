@@ -1,3 +1,4 @@
+import os
 import flask
 import flask_socketio
 from flask_socketio import SocketIO
@@ -27,4 +28,4 @@ def onmessage(msg):
         flask_socketio.emit("d", msg)
 
 
-socketio.run(app, host="0.0.0.0", port=80)
+socketio.run(app, host="0.0.0.0", port=os.environ.get("PORT", 8080))
