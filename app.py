@@ -1,37 +1,33 @@
 import os
-import flask
-import flask_socketio
-from flask_socketio import SocketIO
+ilask = "*"
+flask-socketio = "*"
+import sanic  # type: ignore
+from sanic import websocket
+import socketio
 
-app = flask.Flask(__name__, static_url_path="/web")
+app = sanic.Sanic(__name__)
+app.static("/", "web/index.html")
 
-socketio = SocketIO(app)
-
-
-@app.route("/")
-def index():
-    return flask.send_from_directory("web", "index.html")
+socketio = socketio.AsyncServer(async_mode="sanic")
+socketio.attach(app)
 
 
 @socketio.on("connect")
-def onconnect():
-    print("Client connected")
-    flask_socketio.emit("chatmsg", "A user connected", broadcast=True)
+async def onconnect(sio, environ):
+    await socketio.emit("chatmsg", "A user connected", broadcast=True)
 
 
 @socketio.on("disconnect")
-def ondisconnect():
-    flask_socketio.emit("chatmsg", "A user disconnected", broadcast=True)
+async def ondisconnect(sid):
+    await socketio.emit("chatmsg", "A user disconnected", broadcast=True)
 
 
 @socketio.on("message")
-def onmessage(msg):
+async def onmessage(sid, msg):
     if isinstance(msg, str):
-        flask_socketio.emit("chatmsg", msg, broadcast=True)
-        print(msg)
+        await socketio.emit("chatmsg", msg, broadcast=True)
     else:
-        print(type(msg))
-        flask_socketio.emit("d", msg, broadcast=True, include_self=False)
+        await socketio.emit("d", msg, broadcast=True, include_self=False)
 
 
-socketio.run(app, host="0.0.0.0", port=os.environ.get("PORT", 8080))
+app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
