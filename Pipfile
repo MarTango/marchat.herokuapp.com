@@ -6,8 +6,8 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-flask = "*"
-flask-socketio = "*"
+sanic = "*"
+python-socketio = "*"
 
-[requires]
-python_version = "3.6"
+# [requires]
+# python_version = ">=3.6"
