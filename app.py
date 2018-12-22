@@ -1,9 +1,6 @@
 import os
-ilask = "*"
-flask-socketio = "*"
 import sanic  # type: ignore
-from sanic import websocket
-import socketio
+import socketio  # type: ignore
 
 app = sanic.Sanic(__name__)
 app.static("/", "web/index.html")
