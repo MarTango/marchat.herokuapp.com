@@ -3,6 +3,8 @@ import sanic  # type: ignore
 import socketio  # type: ignore
 
 app = sanic.Sanic(__name__)
+
+app.static("/", "web")
 app.static("/", "web/index.html")
 
 socketio = socketio.AsyncServer(async_mode="sanic")
@@ -10,21 +12,23 @@ socketio.attach(app)
 
 
 @socketio.on("connect")
-async def onconnect(sio, environ):
-    await socketio.emit("chatmsg", "A user connected", broadcast=True)
+async def onconnect(sid, environ):
+    await socketio.emit("chatmsg", "A user connected")
 
 
 @socketio.on("disconnect")
 async def ondisconnect(sid):
-    await socketio.emit("chatmsg", "A user disconnected", broadcast=True)
+    await socketio.emit("chatmsg", "A user disconnected")
 
 
 @socketio.on("message")
 async def onmessage(sid, msg):
-    if isinstance(msg, str):
-        await socketio.emit("chatmsg", msg, broadcast=True)
-    else:
-        await socketio.emit("d", msg, broadcast=True, include_self=False)
+    await socketio.emit("chatmsg", msg)
+
+
+@socketio.on("audio")
+async def onaudio(sid, data):
+    await socketio.emit("audio", data, skip_sid=sid)
 
 
 app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
