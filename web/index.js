@@ -44,14 +44,13 @@ async function main() {
     rec.start();
   }, 1000);
 
+  const mutedElt = document.querySelector("input#muted");
+
   rec.ondataavailable = (e) => {
-    socket.emit("audio", e.data);
+    if (!mutedElt.checked) {
+      socket.emit("audio", e.data);
+    }
   };
-
-  document.querySelector("input#muted").addEventListener("click", function () {
-    this.checked ? rec.pause() : rec.resume();
-  });
-
 }
 
 main();
