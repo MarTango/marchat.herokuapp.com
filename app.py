@@ -1,4 +1,5 @@
 import os
+
 import sanic  # type: ignore
 import socketio  # type: ignore
 
@@ -26,9 +27,19 @@ async def onmessage(sid, msg):
     await socketio.emit("chatmsg", msg)
 
 
-@socketio.on("audio")
-async def onaudio(sid, data):
-    await socketio.emit("audio", data, skip_sid=sid)
+@socketio.on("offer")
+async def onoffer(sid, desc):
+    await socketio.emit("offer", desc)
+
+
+@socketio.on("answer")
+async def onanswer(sid, answer):
+    await socketio.emit("answer", answer)
+
+
+@socketio.on("icecandidate")
+async def onice(sid, candidate):
+    await socketio.emit("icecandidate", candidate)
 
 
 if __name__ == "__main__":
