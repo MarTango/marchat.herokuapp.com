@@ -1,4 +1,4 @@
-var socket;
+let socket;
 
 const messages = document.querySelector("ul#messages");
 const message = document.querySelector("#m");
@@ -7,6 +7,15 @@ document.querySelector("form").addEventListener('submit', (e) => {
   e.preventDefault();
   socket.send(message.value);
   message.value = "";
+});
+
+let peerConnection = new RTCPeerConnection({
+  iceServers: [
+    {urls:['stun:stun.l.google.com:19302']},
+    {urls:['stun:stun1.l.google.com:19302']},
+    {urls:['stun:stun2.l.google.com:19302']},
+    {urls:['stun:stun3.l.google.com:19302']},
+ ],
 });
 
 async function main() {
