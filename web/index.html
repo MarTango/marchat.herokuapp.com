@@ -2,28 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8"/>
+    <meta name="description" content="Simple WebRTC chatroom" />
+
     <title>MarChat</title>
+    <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
+    <link href="assets/main.css" rel="stylesheet"/>
+
   </head>
   <body>
 
-    <ul id="messages"> </ul>
+    <div class="container">
 
-    <form action="">
+      <div id="messaging">
 
-      <input id="m" type="text" value=""/><button>Send</button>
+        <ul id="messages"> </ul>
 
-    </form>
+        <form action="">
 
-    <div>
+          <input id="m" type="text" value=""/><button>Send</button>
 
-      <label for="muted">Mute?</label>
+        </form>
+        
+      </div>
 
-      <input id="muted" type="checkbox" value=""/>
+      <div>
 
-    </div>
+        <label for="muted">Mute?</label>
+
+        <input id="muted" type="checkbox" value=""/>
+
+      </div>
+
+    </div>    
 
   </body>
 
   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
-  <script src="index.js"></script>
+  <script src="//webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script type="module" src="assets/main.js"></script>
 </html>

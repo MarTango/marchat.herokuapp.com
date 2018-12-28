@@ -1,4 +1,5 @@
 import os
+
 import sanic  # type: ignore
 import socketio  # type: ignore
 
@@ -13,12 +14,12 @@ socketio.attach(app)
 
 @socketio.on("connect")
 async def onconnect(sid, environ):
-    await socketio.emit("chatmsg", "A user connected")
+    await socketio.emit("connect", sid, skip_sid=sid)
 
 
 @socketio.on("disconnect")
 async def ondisconnect(sid):
-    await socketio.emit("chatmsg", "A user disconnected")
+    await socketio.emit("disconnect", sid)
 
 
 @socketio.on("message")
@@ -26,9 +27,20 @@ async def onmessage(sid, msg):
     await socketio.emit("chatmsg", msg)
 
 
-@socketio.on("audio")
-async def onaudio(sid, data):
-    await socketio.emit("audio", data, skip_sid=sid)
+@socketio.on("offer")
+async def onoffer(sid, desc):
+    await socketio.emit("offer", desc)
 
 
-app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
+@socketio.on("answer")
+async def onanswer(sid, answer):
+    await socketio.emit("answer", answer)
+
+
+@socketio.on("icecandidate")
+async def onice(sid, candidate):
+    await socketio.emit("icecandidate", candidate)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080))
