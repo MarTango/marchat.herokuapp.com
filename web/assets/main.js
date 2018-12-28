@@ -9,6 +9,12 @@ const PENDING_OUTGOING_CALLS = {};
 const messages = document.querySelector("ul#messages");
 const message = document.querySelector("#m");
 
+function addMessage(message) {
+  const elt = document.createElement("li");
+  elt.innerText = message;
+  messages.appendChild(elt);
+}
+
 window.onload = async function () {
   let socket = io();
   registerSocketBaseHandlers(socket);
@@ -37,6 +43,7 @@ window.onload = async function () {
     }
   });
 
+  // Check PENDING_OUTGOING_CALLS for anything we need to resend.
   setInterval(() => {
     Object.keys(PENDING_OUTGOING_CALLS).forEach(async sid => {
       const call = PENDING_OUTGOING_CALLS[sid];
@@ -45,12 +52,14 @@ window.onload = async function () {
   }, 1000);
 
   socket.on("connect", async (sid) => {
+    addMessage("A user connected");
     const outgoingCall = new OutgoingCall(socket, socket.id, sid);
     outgoingCall.addStream(localStream);
     PENDING_OUTGOING_CALLS[sid] = outgoingCall;
   });
 
   socket.on("disconnect", async (sid) => {
+    addMessage("A user disconnected");
     for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
       if (coll[sid]) {
         console.log(coll[sid]);
@@ -94,11 +103,7 @@ window.onload = async function () {
 };
 
 function registerSocketBaseHandlers(socket) {
-  socket.on("chatmsg", msg => {
-    let elt = document.createElement("li");
-    elt.appendChild(document.createTextNode(msg));
-    messages.appendChild(elt);
-  });
+  socket.on("chatmsg", addMessage);
 
   document.querySelector("form").addEventListener('submit', (e) => {
     e.preventDefault();
