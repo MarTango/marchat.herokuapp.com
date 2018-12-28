@@ -21,6 +21,10 @@ window.onload = async function () {
     video: false,
   });
 
+  document.querySelector("input#muted").addEventListener("change", (e) => {
+    localStream.getAudioTracks().forEach(t => t.enabled = !this.checked);
+  });
+
   socket.on("icecandidate", async (e) => {
     const d = JSON.parse(e);
     if (d.to != ME) {
