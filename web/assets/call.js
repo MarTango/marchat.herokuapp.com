@@ -1,29 +1,64 @@
 const _peerConnectionConfig = {
   iceServers: [
-    {urls:['stun:stun.l.google.com:19302']},
-    // {urls:['stun:stun1.l.google.com:19302']},
-    // {urls:['stun:stun2.l.google.com:19302']},
-    // {urls:['stun:stun3.l.google.com:19302']},
+    { urls:['stun:stun.l.google.com:19302'] }
   ],
 };
+
+const STREAMS = [];
+
+/**
+ * Create an <audio> element, set its srcObject as the stream attached
+ * to e, then append the element to the document's body.
+ *
+ * @param {RTCTrackEvent} e
+ */
+function trackHandler(e) {
+  const stream = e.streams[0];
+  
+  if (STREAMS.indexOf(stream) !== -1) {
+    return;
+  }
+  STREAMS.push(stream);
+  
+  const tag = stream.getVideoTracks().length > 0 ? "video": "audio";
+
+  const elt = document.createElement(tag);
+  elt.setAttribute("autoplay", "");
+  elt.setAttribute("controls", "");
+  elt.setAttribute("playsinline", "");
+  elt.srcObject = stream;
+  document.body.appendChild(elt);
+}
 
 class Call {
   /**
    * @param {RTCPeerConnection} conn
-   * @param {string} owner
+   * @param {string} myId
+   * @param {string} theirId
    */
-  constructor(sock, owner) {
+  constructor(sock, myId, theirId) {
     const conn = new RTCPeerConnection(_peerConnectionConfig);
+
     conn.ontrack = trackHandler;
+    conn.ontrack = (() => {
+      return function (e) {
+        console.log(`${myId} received track from ${theirId}`);
+        return trackHandler(e);
+      };
+    })();
+
     conn.addEventListener("icecandidate", async e => {
+      console.log(`${myId}: Emitting ice candidate for ${theirId}`);
       await sock.emit("icecandidate", JSON.stringify({
-        id: owner,
+        from: myId,
+        to: theirId,
         candidate: e.candidate,
       }));
     });
 
     this.conn = conn;
-    this.owner = owner;
+    this.from = myId;
+    this.to = theirId;
   }
 
   addStream(stream) {
@@ -42,8 +77,8 @@ export class IncomingCall extends Call {
     await c.setLocalDescription(desc);
 
     return {
-      to: offer.from,
-      from: this.owner,
+      to: offer.from, // should == this.to
+      from: this.from,
       desc
     };
   }
@@ -61,24 +96,9 @@ export class OutgoingCall extends Call {
 
     await c.setLocalDescription(desc);
     return {
-      from: this.owner,
+      to: this.to,
+      from: this.from,
       desc
     };
   }
-}
-
-/**
- * Create an <audio> element, set its srcObject as the stream attached
- * to e, then append the element to the document's body.
- *
- * @param {RTCTrackEvent} e
- * @return {void}
- */
-function trackHandler(e) {
-  const audio = document.createElement("audio");
-  audio.setAttribute("autoplay", "");
-  audio.setAttribute("controls", "");
-  audio.setAttribute("playsinline", "");
-  audio.srcObject = e.streams[0];
-  document.body.appendChild(audio);
 }

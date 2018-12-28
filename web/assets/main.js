@@ -1,9 +1,12 @@
 import { IncomingCall, OutgoingCall } from "./call.js";
+// import Room from "room.js";
 
 /** @type {[string: RTCPeerConnection]} */
-const RECEIVERS = [];
+const OUTGOING_CALLS = {};
+const INCOMING_CALLS = {};
 
 // Hopefully a unique identifier
+/** @type {string} My socket's Session ID */
 let ME; // entertain you
 
 const messages = document.querySelector("ul#messages");
@@ -18,41 +21,59 @@ window.onload = async function () {
     video: false,
   });
 
-  // Send an offer out
-  let outgoingCall = new OutgoingCall(socket, ME);
-  outgoingCall.addStream(localStream);
-  await socket.emit("offer", JSON.stringify(await outgoingCall.offer()));
-
-  // TODO: 
   socket.on("icecandidate", async (e) => {
-    const data = JSON.parse(e);
-    if (data.id !== ME) {
-      await outgoingCall.conn.addIceCandidate(data.candidate);
+    const d = JSON.parse(e);
+    if (d.to != ME) {
+      return;
     }
-    for (const receiver of RECEIVERS) {
-      await receiver.conn.addIceCandidate(data.candidate);
+
+    if (OUTGOING_CALLS[d.from]) {
+      console.log("Out candidate");
+      await OUTGOING_CALLS[d.from].conn.addIceCandidate(d.candidate);
     }
+    if (INCOMING_CALLS[d.from]) {
+      console.log("In candidate");
+      await INCOMING_CALLS[d.from].conn.addIceCandidate(d.candidate);
+    }
+
+  });
+
+  socket.on("connect", async (sid) => {
+    // If someone connects, lets send them a call.
+    console.log(`${sid} connected. Let's call them!`);
+
+    // Hopefully the recipient has loaded after 100ms
+    await sleep(100);
+
+    const outgoingCall = new OutgoingCall(socket, ME, sid);
+    outgoingCall.addStream(localStream);
+    OUTGOING_CALLS[sid] = outgoingCall;
+    socket.emit("offer", JSON.stringify(await outgoingCall.offer()));
   });
 
   socket.on("offer", async e => {
     const offer = JSON.parse(e);
-    if (offer.from == ME) {
+    console.log(`${offer.from} is sending out an offer to ${offer.to}`);
+
+    if (offer.to != ME) {
       return;
     }
-    const receiver = new IncomingCall(socket, ME);
-    const answer = await receiver.accept(offer);
 
-    const answerId = RECEIVERS.push(receiver) - 1;
-    answer.id = answerId;
+    const receiver = new IncomingCall(socket, ME, offer.from);
+    receiver.addStream(localStream);
+    INCOMING_CALLS[offer.from] = receiver;
 
-    await socket.emit("answer", JSON.stringify(answer));
+    await socket.emit("answer", JSON.stringify(
+      await receiver.accept(offer)
+    ));
   });
 
   socket.on("answer", async e => {
-    const answer = JSON.parse(e);
+    console.log("They answered my call");
+    const ans = JSON.parse(e);
     // If the answer is to me, register it
-    if (answer.to == outgoingCall.owner) {
-      await outgoingCall.accept(answer);
+    if (ans.to == ME && OUTGOING_CALLS[ans.from]) {
+      await OUTGOING_CALLS[ans.from].accept(ans);
     }
   });
 
@@ -69,11 +90,13 @@ function registerSocketBaseHandlers(socket) {
     messages.appendChild(elt);
   });
 
-  // Make the form send the message over the socket, and then empty
-  // its value.
   document.querySelector("form").addEventListener('submit', (e) => {
     e.preventDefault();
     socket.send(message.value);
     message.value = "";
   });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -14,12 +14,12 @@ socketio.attach(app)
 
 @socketio.on("connect")
 async def onconnect(sid, environ):
-    await socketio.emit("chatmsg", "A user connected")
+    await socketio.emit("connect", sid, skip_sid=sid)
 
 
 @socketio.on("disconnect")
 async def ondisconnect(sid):
-    await socketio.emit("chatmsg", "A user disconnected")
+    await socketio.emit("disconnect", sid)
 
 
 @socketio.on("message")
