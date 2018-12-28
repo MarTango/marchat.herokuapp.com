@@ -4,10 +4,7 @@ import { IncomingCall, OutgoingCall } from "./call.js";
 /** @type {[string: RTCPeerConnection]} */
 const OUTGOING_CALLS = {};
 const INCOMING_CALLS = {};
-
-// Hopefully a unique identifier
-/** @type {string} My socket's Session ID */
-let ME; // entertain you
+const PENDING_OUTGOING_CALLS = {};
 
 const messages = document.querySelector("ul#messages");
 const message = document.querySelector("#m");
@@ -21,51 +18,60 @@ window.onload = async function () {
     video: false,
   });
 
-  document.querySelector("input#muted").addEventListener("change", (e) => {
-    localStream.getAudioTracks().forEach(function (t) {
+  document.querySelector("input#muted").addEventListener("change", function () {
+    localStream.getAudioTracks().forEach((t) => {
       t.enabled = !this.checked;
     });
   });
 
   socket.on("icecandidate", async (e) => {
     const d = JSON.parse(e);
-    if (d.to != ME) {
+    if (d.to != socket.id) {
       return;
     }
 
-    if (OUTGOING_CALLS[d.from]) {
-      console.log("Out candidate");
-      await OUTGOING_CALLS[d.from].conn.addIceCandidate(d.candidate);
+    for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
+      if (coll[d.from]) {
+        await coll[d.from].conn.addIceCandidate(d.candidate);
+      }
     }
-    if (INCOMING_CALLS[d.from]) {
-      console.log("In candidate");
-      await INCOMING_CALLS[d.from].conn.addIceCandidate(d.candidate);
-    }
-
   });
 
+  setInterval(() => {
+    Object.keys(PENDING_OUTGOING_CALLS).forEach(async sid => {
+      const call = PENDING_OUTGOING_CALLS[sid];
+      socket.emit("offer", JSON.stringify(await call.offer()));
+    });
+  }, 1000);
+
   socket.on("connect", async (sid) => {
-    // If someone connects, lets send them a call.
-    console.log(`${sid} connected. Let's call them!`);
-
-    // Hopefully the recipient has loaded after 100ms
-    await sleep(100);
-
-    const outgoingCall = new OutgoingCall(socket, ME, sid);
+    const outgoingCall = new OutgoingCall(socket, socket.id, sid);
     outgoingCall.addStream(localStream);
-    OUTGOING_CALLS[sid] = outgoingCall;
-    socket.emit("offer", JSON.stringify(await outgoingCall.offer()));
+    PENDING_OUTGOING_CALLS[sid] = outgoingCall;
+  });
+
+  socket.on("disconnect", async (sid) => {
+    for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
+      if (coll[sid]) {
+        console.log(coll[sid]);
+        coll[sid].close();
+        delete coll[sid];
+      }
+    }
+    const elt = document.querySelector(`audio#x${sid}`);
+    if (elt) {
+      elt.remove();
+    }
   });
 
   socket.on("offer", async e => {
     const offer = JSON.parse(e);
-    console.log(`${offer.from} is sending out an offer to ${offer.to}`);
 
-    if (offer.to != ME) {
+    if (offer.to != socket.id) {
       return;
     }
 
-    const receiver = new IncomingCall(socket, ME, offer.from);
+    const receiver = new IncomingCall(socket, socket.id, offer.from);
     receiver.addStream(localStream);
     INCOMING_CALLS[offer.from] = receiver;
 
@@ -78,18 +84,16 @@ window.onload = async function () {
     console.log("They answered my call");
     const ans = JSON.parse(e);
     // If the answer is to me, register it
-    if (ans.to == ME && OUTGOING_CALLS[ans.from]) {
-      await OUTGOING_CALLS[ans.from].accept(ans);
+    if (ans.to == socket.id && PENDING_OUTGOING_CALLS[ans.from]) {
+      await PENDING_OUTGOING_CALLS[ans.from].accept(ans);
+      OUTGOING_CALLS[ans.from] = PENDING_OUTGOING_CALLS[ans.from];
+      delete PENDING_OUTGOING_CALLS[ans.from];
     }
   });
 
 };
 
 function registerSocketBaseHandlers(socket) {
-  socket.on("connect", () => {
-    ME = socket.id;
-  });
-
   socket.on("chatmsg", msg => {
     let elt = document.createElement("li");
     elt.appendChild(document.createTextNode(msg));
