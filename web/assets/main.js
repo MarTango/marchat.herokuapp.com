@@ -1,4 +1,4 @@
-import { IncomingCall, OutgoingCall } from "./call.js";
+import { IncomingCall, OutgoingCall } from "./src/call.js";
 // import Room from "room.js";
 
 /** @type {[string: RTCPeerConnection]} */
@@ -15,7 +15,7 @@ function addMessage(message) {
   messages.appendChild(elt);
 }
 
-window.onload = async function () {
+document.addEventListener("load", async () => {
   let socket = io();
   registerSocketBaseHandlers(socket);
 
@@ -100,7 +100,7 @@ window.onload = async function () {
     }
   });
 
-};
+});
 
 function registerSocketBaseHandlers(socket) {
   socket.on("chatmsg", addMessage);
