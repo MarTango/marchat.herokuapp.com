@@ -13,15 +13,19 @@ function main() {
     canvas.height * Math.random()
   );
 
-  function tick() {
-    world.entities.push(
-      new Bullet(
-        world,
-        Math.random() * canvas.width,
-        Math.random() * canvas.height,
-        Math.PI * Math.random()
-      )
+  for (let i = 0; i < 5; i++) {
+    const bullet = new Bullet(
+      world,
+      Math.random() * canvas.width,
+      Math.random() * canvas.height,
+      Math.PI * Math.random()
     );
+    bullet.fillStyle = "#" + Math.floor(Math.random() * 16777215).toString(16);
+    bullet.radius = 10;
+    world.entities.push(bullet);
+  }
+
+  function tick() {
 
     world.draw();
     world.tick();
@@ -45,7 +49,7 @@ class World {
   registerCollisions() {
     this.entities.forEach(e => {
       this.entities.forEach(f => {
-        const threshold = e.constructor.RADIUS + f.constructor.RADIUS;
+        const threshold = e.radius + f.radius;
 
         if (e !== f
             && Math.abs(e.x - f.x) < threshold
@@ -71,7 +75,7 @@ class World {
 
   draw() {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-    this.entities.forEach(e => e.draw());
+    this.entities.forEach(e => e.render());
   }
 }
 
@@ -79,7 +83,7 @@ class World {
  * @interface
  */
 class Entity {
-  draw() {}
+  render() {}
   tick(dt) {}
   collide(entity) {}
 }
@@ -94,16 +98,17 @@ class Bullet {
     this.world = world;
     this.x = x;
     this.y = y;
-    this.dx = vel * Math.sin(angle);
-    this.dy = vel * Math.cos(angle);
+    this.vx = vel * Math.sin(angle);
+    this.vy = vel * Math.cos(angle);
+    this.radius = Bullet.radius;
   }
 
-  draw() {
+  render() {
     const ctx = this.world.ctx;
 
     ctx.beginPath();
-    ctx.arc(this.x, this.y, Bullet.RADIUS, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
+    ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = this.fillStyle || "red";
     ctx.fill();
     ctx.closePath();
   }
@@ -116,16 +121,16 @@ class Bullet {
     const h = this.world.ctx.canvas.height;
     const w = this.world.ctx.canvas.width;
 
-    if (this.x < 0 || this.x > w) {
-      this.dx = -this.dx;
+    if (this.x < this.radius || this.x + this.radius > w) {
+      this.vx = -this.vx;
     }
 
-    if (this.y < 0 || this.y > h) {
-      this.dy = -this.dy;
+    if (this.y < this.radius || this.y + this.radius > h) {
+      this.vy = -this.vy;
     }
 
-    this.x += this.dx * dt;
-    this.y += this.dy * dt;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
   }
 }
 
