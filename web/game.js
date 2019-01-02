@@ -96,14 +96,12 @@ class Entity {
  * @implements {Entity}
  */
 class Bullet {
-  constructor(world, x, y, angle, vel) {
-    vel = vel || Bullet.DEFAULT_VEL;
-
+  constructor(world, x, y, vx, vy) {
     this.world = world;
     this.x = x;
     this.y = y;
-    this.vx = vel * Math.cos(angle);
-    this.vy = vel * Math.sin(angle);
+    this.vx = vx;
+    this.vy = vy;
     this.radius = Bullet.RADIUS;
   }
 
@@ -112,7 +110,7 @@ class Bullet {
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-    ctx.fillStyle = this.fillStyle || "red";
+    ctx.fillStyle = this.fillStyle || "blue";
     ctx.fill();
     ctx.closePath();
   }
@@ -155,20 +153,26 @@ class Player {
    * @param {number} angle Angle to the positive y-axis.
    */
   shoot(angle) {
-    const r = this.radius + Bullet.RADIUS + 1;
+    const r = this.radius + Bullet.RADIUS + 3;
+    const vx = Math.cos(angle);
+    const vy = Math.sin(angle);
 
     const bullet = new Bullet(
       this.world,
-      this.x + Math.cos(angle) * r,
-      this.y - Math.sin(angle) * r,
-      angle
+      this.x + vx * r,
+      this.y + vy * r,
+      vx * 0.1,
+      vy * 0.1
     );
     this.world.entities.push(bullet);
+    return bullet;
   }
 
   collide(entity) {
     if (entity instanceof Bullet) {
       this.world.entities = this.world.entities.filter(x => x !== this);
+      window.removeEventListener("keydown", this._keyDownHandler);
+      window.removeEventListener("keyup", this._keyUpHandler);
     }
   }
 
@@ -197,31 +201,35 @@ class PrimaryPlayer extends Player {
     this.speed = 0.1;
     this.radius = 7;
 
-    window.addEventListener("keydown", e => this._keyDownHandler(this, e));
-    window.addEventListener("keyup", e => this._keyUpHandler(this, e));
-  }
+    [this.x, this.y] = [x, y];
 
-  _keyDownHandler(self, e) {
-    var k = e.key.toLowerCase();
-    var keys = {
-      w: [1, -1],
-      a: [0, -1],
-      s: [1, 1],
-      d: [0, 1]
+    this._keyDownHandler = (e) => {
+      var k = e.key.toLowerCase();
+      var keys = {
+        w: [1, -1],
+        a: [0, -1],
+        s: [1, 1],
+        d: [0, 1]
+      };
+      var j = keys[k];
+      if (j) {
+        this.dir[j[0]] = j[1];
+      }
     };
-    var j = keys[k];
-    if (j) {
-      self.dir[j[0]] = j[1];
-    }
-  }
+    this._keyUpHandler = e => {
+      var k = e.key.toLowerCase();
+      if ("ws".indexOf(k) > -1) {
+        this.dir[1] = 0;
+      } else if ("ad".indexOf(k) > -1) {
+        this.dir[0] = 0;
+      }
+    };
 
-  _keyUpHandler(self, e) {
-    var k = e.key.toLowerCase();
-    if ("ws".indexOf(k) > -1) {
-      self.dir[1] = 0;
-    } else if ("ad".indexOf(k) > -1) {
-      self.dir[0] = 0;
-    }
+    window.addEventListener("keydown", this._keyDownHandler);
+    window.addEventListener("keyup", this._keyUpHandler);
+  }
+  collide(entity) {
+    super.collide(entity);
   }
 }
 
