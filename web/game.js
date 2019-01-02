@@ -13,6 +13,9 @@ function main() {
     canvas.height * Math.random()
   );
 
+  me.fillStyle = "red";
+  world.entities.push(me);
+
   for (let i = 0; i < 5; i++) {
     const bullet = new Bullet(
       world,
@@ -20,14 +23,15 @@ function main() {
       Math.random() * canvas.height,
       Math.PI * Math.random()
     );
-    bullet.fillStyle = "#" + Math.floor(Math.random() * 16777215).toString(16);
-    bullet.radius = 10;
-    world.entities.push(bullet);
+    // bullet.fillStyle = "#" + Math.floor(Math.random() * 16777215).toString(16);
+    bullet.fillStyle = "black";
+    // world.entities.push(bullet);
   }
 
-  function tick() {
+  // world.entities.push(me);
 
-    world.draw();
+  function tick() {
+    world.render();
     world.tick();
     world.registerCollisions();
     requestAnimationFrame(tick);
@@ -73,7 +77,7 @@ class World {
     this.entities.forEach(e => e.tick(dt));
   }
 
-  draw() {
+  render() {
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     this.entities.forEach(e => e.render());
   }
@@ -98,9 +102,9 @@ class Bullet {
     this.world = world;
     this.x = x;
     this.y = y;
-    this.vx = vel * Math.sin(angle);
-    this.vy = vel * Math.cos(angle);
-    this.radius = Bullet.radius;
+    this.vx = vel * Math.cos(angle);
+    this.vy = vel * Math.sin(angle);
+    this.radius = Bullet.RADIUS;
   }
 
   render() {
@@ -142,13 +146,21 @@ Bullet.DEFAULT_VEL = 0.2;
  * @implements {Entity}
  */
 class Player {
+
+  constructor(world, x, y) {
+    this.world = world;
+    this.pos = [x, y];
+  }
   /**
    * @param {number} angle Angle to the positive y-axis.
    */
   shoot(angle) {
+    const r = this.radius + Bullet.RADIUS + 1;
+
     const bullet = new Bullet(
-      this.x,
-      this.y,
+      this.world,
+      this.x + Math.cos(angle) * r,
+      this.y - Math.sin(angle) * r,
       angle
     );
     this.world.entities.push(bullet);
@@ -159,9 +171,58 @@ class Player {
       this.world.entities = this.world.entities.filter(x => x !== this);
     }
   }
+
+  render() {
+    const ctx = this.world.ctx;
+
+    ctx.beginPath();
+    ctx.arc(this.pos[0], this.pos[1], this.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = this.fillStyle || "black";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  tick(dt) {
+    this.pos = this.pos.map((x, i) => {
+      return x + this.dir[i] * this.speed * dt;
+    });
+    [this.x, this.y] = this.pos;
+  }
 }
 
 class PrimaryPlayer extends Player {
+  constructor(world, x, y) {
+    super(world, x, y);
+    this.dir = [0, 0];
+    this.speed = 0.1;
+    this.radius = 7;
+
+    window.addEventListener("keydown", e => this._keyDownHandler(this, e));
+    window.addEventListener("keyup", e => this._keyUpHandler(this, e));
+  }
+
+  _keyDownHandler(self, e) {
+    var k = e.key.toLowerCase();
+    var keys = {
+      w: [1, -1],
+      a: [0, -1],
+      s: [1, 1],
+      d: [0, 1]
+    };
+    var j = keys[k];
+    if (j) {
+      self.dir[j[0]] = j[1];
+    }
+  }
+
+  _keyUpHandler(self, e) {
+    var k = e.key.toLowerCase();
+    if ("ws".indexOf(k) > -1) {
+      self.dir[1] = 0;
+    } else if ("ad".indexOf(k) > -1) {
+      self.dir[0] = 0;
+    }
+  }
 }
 
 class EnemyPlayer extends Player {
