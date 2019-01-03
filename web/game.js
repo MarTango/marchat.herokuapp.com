@@ -152,17 +152,15 @@ class Player {
   /**
    * @param {number} angle Angle to the positive y-axis.
    */
-  shoot(angle) {
+  shoot(vx, vy) {
     const r = this.radius + Bullet.RADIUS + 3;
-    const vx = Math.cos(angle);
-    const vy = Math.sin(angle);
 
     const bullet = new Bullet(
       this.world,
       this.x + vx * r,
       this.y + vy * r,
-      vx * 0.1,
-      vy * 0.1
+      vx * Bullet.DEFAULT_VEL,
+      vy * Bullet.DEFAULT_VEL
     );
     this.world.entities.push(bullet);
     return bullet;
@@ -216,6 +214,7 @@ class PrimaryPlayer extends Player {
         this.dir[j[0]] = j[1];
       }
     };
+
     this._keyUpHandler = e => {
       var k = e.key.toLowerCase();
       if ("ws".indexOf(k) > -1) {
@@ -225,9 +224,25 @@ class PrimaryPlayer extends Player {
       }
     };
 
+    this._mousedownHandler = e => {
+      const mx = e.clientX;
+      const my = e.clientY;
+      const [x, y] = this.pos;
+
+      var vx = mx - x;
+      var vy = my - y;
+
+      const magnitude = Math.sqrt(vx * vx + vy * vy);
+      vx /= magnitude;
+      vy /= magnitude;
+      this.shoot(vx, vy);
+    };
+
     window.addEventListener("keydown", this._keyDownHandler);
     window.addEventListener("keyup", this._keyUpHandler);
+    window.addEventListener("mousedown", this._mousedownHandler);
   }
+
   collide(entity) {
     super.collide(entity);
   }
