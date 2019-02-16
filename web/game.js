@@ -37,17 +37,12 @@ class World {
 
   registerCollisions() {
     this.entities.forEach(e => {
-      this.entities.forEach(f => {
+      this.entities.filter(f => {
         const threshold = e.radius + f.radius;
-
-        if (e !== f
-            && Math.abs(e.x - f.x) < threshold
-            && Math.abs(e.y - f.y) < threshold
-           ) {
-          console.log("Collision!");
+        return f !== e && Math.abs(e.x - f.x) < threshold && Math.abs(e.y - f.y) < threshold;
+      }).forEach(f => {
           e.collide(f);
           f.collide(e);
-        }
       });
     });
   }
@@ -74,6 +69,10 @@ class Entity {
     this.y = y;
   }
 
+  /**
+   * Draw a circle at the position (this.x, this.y) with radius
+   * `this.radius`
+   */
   render() {
     const ctx = this.world.ctx;
     ctx.beginPath();
@@ -95,10 +94,16 @@ class Bullet extends Entity {
     this.radius = Bullet.RADIUS;
   }
 
+  /**
+   * Remove self from world's entities
+   */
   collide() {
     this.world.entities = this.world.entities.filter(x => x !== this);
   }
 
+  /**
+   * Continue moving in same direction; if at wall, bounce.
+   */
   tick(dt) {
     const h = this.world.ctx.canvas.height;
     const w = this.world.ctx.canvas.width;
@@ -204,9 +209,6 @@ class Player extends Entity {
     });
   }
 
-  /**
-   * @param {number} angle Angle to the positive y-axis.
-   */
   shoot(vx, vy) {
     const r = this.radius + Bullet.RADIUS + 3;
 
