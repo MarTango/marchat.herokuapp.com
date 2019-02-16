@@ -1,6 +1,5 @@
-var canvas = document.querySelector("canvas");
-
 function main() {
+  var canvas = document.querySelector("canvas");
   const world = new World(
     canvas.getContext("2d"),
     []
@@ -187,8 +186,21 @@ class Player extends Entity {
   }
 
   tick(dt) {
+    const boundaries = [
+      this.world.ctx.canvas.width, this.world.ctx.canvas.height
+    ];
+
     [this.x, this.y] = [this.x, this.y].map((x, i) => {
-      return x + this.dir[i] * this.speed * dt;
+      const m = x + this.dir[i] * this.speed * dt;
+      const out =  Math.max(
+        this.radius,
+        Math.min(
+          m,
+          boundaries[i] - this.radius
+        )
+      );
+
+      return out;
     });
   }
 
@@ -205,6 +217,8 @@ class Player extends Entity {
       vx * Bullet.DEFAULT_VEL,
       vy * Bullet.DEFAULT_VEL
     );
+    bullet.fillStyle = this.fillStyle;
+
     this.world.entities.push(bullet);
     return bullet;
   }
