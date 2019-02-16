@@ -7,7 +7,7 @@ function main() {
   );
   window.world = world;
 
-  const me = new PrimaryPlayer(
+  const me = new Player(
     world,
     canvas.width * Math.random(),
     canvas.height * Math.random()
@@ -15,20 +15,6 @@ function main() {
 
   me.fillStyle = "red";
   world.entities.push(me);
-
-  for (let i = 0; i < 5; i++) {
-    const bullet = new Bullet(
-      world,
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      Math.PI * Math.random()
-    );
-    // bullet.fillStyle = "#" + Math.floor(Math.random() * 16777215).toString(16);
-    bullet.fillStyle = "black";
-    // world.entities.push(bullet);
-  }
-
-  // world.entities.push(me);
 
   function tick() {
     world.render();
@@ -70,7 +56,6 @@ class World {
   tick() {
     const newTime = new Date();
     const oldTime = this.time || newTime;
-
     this.time = newTime;
 
     const dt = newTime - oldTime;
@@ -83,36 +68,32 @@ class World {
   }
 }
 
-/**
- * @interface
- */
 class Entity {
-  render() {}
-  tick(dt) {}
-  collide(entity) {}
+  constructor(world, x, y) {
+    this.world = world;
+    this.x = x;
+    this.y = y;
+  }
+
+  render() {
+    const ctx = this.world.ctx;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = this.fillStyle;
+    ctx.fill();
+    ctx.closePath();
+  }
 }
 
-/**
- * @implements {Entity}
- */
-class Bullet {
+class Bullet extends Entity {
   constructor(world, x, y, vx, vy) {
+    super(world, x, y);
     this.world = world;
     this.x = x;
     this.y = y;
     this.vx = vx;
     this.vy = vy;
     this.radius = Bullet.RADIUS;
-  }
-
-  render() {
-    const ctx = this.world.ctx;
-
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-    ctx.fillStyle = this.fillStyle || "blue";
-    ctx.fill();
-    ctx.closePath();
   }
 
   collide() {
@@ -123,85 +104,39 @@ class Bullet {
     const h = this.world.ctx.canvas.height;
     const w = this.world.ctx.canvas.width;
 
-    if (this.x < this.radius || this.x + this.radius > w) {
-      this.vx = -this.vx;
-    }
+    [['x', 'vx', w], ['y', 'vy', h]].forEach(a => {
+      const x = a[0];
+      const v = a[1];
 
-    if (this.y < this.radius || this.y + this.radius > h) {
-      this.vy = -this.vy;
-    }
+      var pos = this[x];
+      var vel = this[v];
 
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
+      if (pos - this.radius < 0) {
+        this[v] = Math.abs(vel);
+      } else if (pos + this.radius > a[2]) {
+        this[v] = -Math.abs(vel);
+      }
+
+      this[x] += this[v] * dt;
+
+    });
   }
 }
 
 Bullet.RADIUS = 1;
 Bullet.DEFAULT_VEL = 0.2;
 
-
-/**
- * @implements {Entity}
- */
-class Player {
-
-  constructor(world, x, y) {
-    this.world = world;
-    this.pos = [x, y];
-  }
-  /**
-   * @param {number} angle Angle to the positive y-axis.
-   */
-  shoot(vx, vy) {
-    const r = this.radius + Bullet.RADIUS + 3;
-
-    const bullet = new Bullet(
-      this.world,
-      this.x + vx * r,
-      this.y + vy * r,
-      vx * Bullet.DEFAULT_VEL,
-      vy * Bullet.DEFAULT_VEL
-    );
-    this.world.entities.push(bullet);
-    return bullet;
-  }
-
-  collide(entity) {
-    if (entity instanceof Bullet) {
-      this.world.entities = this.world.entities.filter(x => x !== this);
-      window.removeEventListener("keydown", this._keyDownHandler);
-      window.removeEventListener("keyup", this._keyUpHandler);
-    }
-  }
-
-  render() {
-    const ctx = this.world.ctx;
-
-    ctx.beginPath();
-    ctx.arc(this.pos[0], this.pos[1], this.radius, 0, 2 * Math.PI);
-    ctx.fillStyle = this.fillStyle || "black";
-    ctx.fill();
-    ctx.closePath();
-  }
-
-  tick(dt) {
-    this.pos = this.pos.map((x, i) => {
-      return x + this.dir[i] * this.speed * dt;
-    });
-    [this.x, this.y] = this.pos;
-  }
-}
-
-class PrimaryPlayer extends Player {
+class Player extends Entity {
   constructor(world, x, y) {
     super(world, x, y);
+    this.x = x;
+    this.y = y;
+
     this.dir = [0, 0];
     this.speed = 0.1;
     this.radius = 7;
 
-    [this.x, this.y] = [x, y];
-
-    this._keyDownHandler = (e) => {
+    this._keyDownHandler = e => {
       var k = e.key.toLowerCase();
       var keys = {
         w: [1, -1],
@@ -225,12 +160,11 @@ class PrimaryPlayer extends Player {
     };
 
     this._mousedownHandler = e => {
-      const mx = e.clientX;
-      const my = e.clientY;
-      const [x, y] = this.pos;
+      const mx = e.offsetX;
+      const my = e.offsetY;
 
-      var vx = mx - x;
-      var vy = my - y;
+      var vx = mx - this.x;
+      var vy = my - this.y;
 
       const magnitude = Math.sqrt(vx * vx + vy * vy);
       vx /= magnitude;
@@ -244,20 +178,35 @@ class PrimaryPlayer extends Player {
   }
 
   collide(entity) {
-    super.collide(entity);
+    if (entity instanceof Bullet) {
+      this.world.entities = this.world.entities.filter(x => x !== this);
+      window.removeEventListener("keydown", this._keyDownHandler);
+      window.removeEventListener("keyup", this._keyUpHandler);
+      window.removeEventListener("mousedown", this._mousedownHandler);
+    }
   }
-}
 
-class EnemyPlayer extends Player {
-  /**
-   * @param {RTCPeerConnection} connection
-   */
-  constructor(connection) {
-    this.conn = connection;
-    const chan = connection.createDataChannel("game");
-    this.chan = chan;
-    chan.onmessage = (e) => {
-      console.log(e);
-    };
+  tick(dt) {
+    [this.x, this.y] = [this.x, this.y].map((x, i) => {
+      return x + this.dir[i] * this.speed * dt;
+    });
   }
+
+  /**
+   * @param {number} angle Angle to the positive y-axis.
+   */
+  shoot(vx, vy) {
+    const r = this.radius + Bullet.RADIUS + 3;
+
+    const bullet = new Bullet(
+      this.world,
+      this.x + vx * r,
+      this.y + vy * r,
+      vx * Bullet.DEFAULT_VEL,
+      vy * Bullet.DEFAULT_VEL
+    );
+    this.world.entities.push(bullet);
+    return bullet;
+  }
+
 }
