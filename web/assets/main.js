@@ -15,7 +15,7 @@ function addMessage(message) {
   messages.appendChild(elt);
 }
 
-document.addEventListener("load", async () => {
+window.addEventListener("load", async () => {
   let socket = io();
   registerSocketBaseHandlers(socket);
 
@@ -45,7 +45,7 @@ document.addEventListener("load", async () => {
 
   // Check PENDING_OUTGOING_CALLS for anything we need to resend.
   setInterval(() => {
-    Object.keys(PENDING_OUTGOING_CALLS).forEach(async sid => {
+    Object.keys(PENDING_OUTGOING_CALLS).forEach(async (sid) => {
       const call = PENDING_OUTGOING_CALLS[sid];
       socket.emit("offer", JSON.stringify(await call.offer()));
     });
@@ -73,7 +73,7 @@ document.addEventListener("load", async () => {
     }
   });
 
-  socket.on("offer", async e => {
+  socket.on("offer", async (e) => {
     const offer = JSON.parse(e);
 
     if (offer.to != socket.id) {
@@ -84,12 +84,10 @@ document.addEventListener("load", async () => {
     receiver.addStream(localStream);
     INCOMING_CALLS[offer.from] = receiver;
 
-    await socket.emit("answer", JSON.stringify(
-      await receiver.accept(offer)
-    ));
+    await socket.emit("answer", JSON.stringify(await receiver.accept(offer)));
   });
 
-  socket.on("answer", async e => {
+  socket.on("answer", async (e) => {
     console.log("They answered my call");
     const ans = JSON.parse(e);
     // If the answer is to me, register it
@@ -99,13 +97,12 @@ document.addEventListener("load", async () => {
       delete PENDING_OUTGOING_CALLS[ans.from];
     }
   });
-
 });
 
 function registerSocketBaseHandlers(socket) {
   socket.on("chatmsg", addMessage);
 
-  document.querySelector("form").addEventListener('submit', (e) => {
+  document.querySelector("form").addEventListener("submit", (e) => {
     e.preventDefault();
     socket.send(message.value);
     message.value = "";
@@ -113,5 +110,5 @@ function registerSocketBaseHandlers(socket) {
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
