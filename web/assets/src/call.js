@@ -1,7 +1,5 @@
 const _peerConnectionConfig = {
-  iceServers: [
-    { urls:['stun:stun.l.google.com:19302'] }
-  ],
+  iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
 };
 
 const STREAMS = [];
@@ -13,17 +11,18 @@ const STREAMS = [];
  * to e, then append the element to the document's body.
  *
  * @param {RTCTrackEvent} e
+ * @param {RTCPeerConnection} conn
  */
-function getTrackHandler(id) {
+function getTrackHandler(id, conn) {
   return function (e) {
     const stream = e.streams[0];
-    
+
     if (STREAMS.indexOf(stream) !== -1) {
       return;
     }
     STREAMS.push(stream);
-    
-    const tag = stream.getVideoTracks().length > 0 ? "video": "audio";
+
+    const tag = stream.getVideoTracks().length > 0 ? "video" : "audio";
 
     const elt = document.createElement(tag);
     elt.setAttribute("autoplay", "");
@@ -32,9 +31,14 @@ function getTrackHandler(id) {
     elt.srcObject = stream;
     elt.setAttribute("id", "x" + id);
     document.body.appendChild(elt);
+    conn.addEventListener("iceconnectionstatechange", () => {
+      if (conn.iceConnectionState != "connected") {
+        conn.close();
+        document.body.removeChild(elt);
+      }
+    });
   };
 }
-
 
 class Call {
   /**
@@ -45,15 +49,18 @@ class Call {
   constructor(sock, myId, theirId) {
     const conn = new RTCPeerConnection(_peerConnectionConfig);
 
-    conn.ontrack = getTrackHandler(theirId);
+    conn.ontrack = getTrackHandler(theirId, conn);
 
-    conn.addEventListener("icecandidate", async e => {
+    conn.addEventListener("icecandidate", async (e) => {
       console.log(`${myId}: Emitting ice candidate for ${theirId}`);
-      await sock.emit("icecandidate", JSON.stringify({
-        from: myId,
-        to: theirId,
-        candidate: e.candidate,
-      }));
+      await sock.emit(
+        "icecandidate",
+        JSON.stringify({
+          from: myId,
+          to: theirId,
+          candidate: e.candidate,
+        })
+      );
     });
 
     this.conn = conn;
@@ -83,7 +90,7 @@ export class IncomingCall extends Call {
     return {
       to: offer.from, // should == this.to
       from: this.from,
-      desc
+      desc,
     };
   }
 }
@@ -102,7 +109,7 @@ export class OutgoingCall extends Call {
     return {
       to: this.to,
       from: this.from,
-      desc
+      desc,
     };
   }
 }

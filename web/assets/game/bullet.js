@@ -18,7 +18,7 @@ export default class Bullet extends Entity {
    * Remove self from world's entities
    */
   collide() {
-    this.world.entities = this.world.entities.filter(x => x !== this);
+    this.world.entities = this.world.entities.filter((x) => x !== this);
   }
 
   /**
@@ -28,7 +28,10 @@ export default class Bullet extends Entity {
     const h = this.world.ctx.canvas.height;
     const w = this.world.ctx.canvas.width;
 
-    [['x', 'vx', w], ['y', 'vy', h]].forEach(a => {
+    [
+      ["x", "vx", w],
+      ["y", "vy", h],
+    ].forEach((a) => {
       const x = a[0];
       const v = a[1];
 
@@ -42,7 +45,6 @@ export default class Bullet extends Entity {
       }
 
       this[x] += this[v] * dt;
-
     });
   }
 }
