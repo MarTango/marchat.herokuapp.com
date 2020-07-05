@@ -11,10 +11,10 @@ const STREAMS = [];
  * to e, then append the element to the document's body.
  *
  * @param {RTCTrackEvent} e
- * @param {RTCPeerConnection} conn
  */
-function getTrackHandler(id, conn) {
+function getTrackHandler(id) {
   return function (e) {
+    console.log("Got track!");
     const stream = e.streams[0];
 
     if (STREAMS.indexOf(stream) !== -1) {
@@ -22,21 +22,12 @@ function getTrackHandler(id, conn) {
     }
     STREAMS.push(stream);
 
-    const tag = stream.getVideoTracks().length > 0 ? "video" : "audio";
-
-    const elt = document.createElement(tag);
-    elt.setAttribute("autoplay", "");
-    elt.setAttribute("controls", "");
-    elt.setAttribute("playsinline", "");
+    const elt = document.createElement("video");
+    elt.id = `x${id}`;
+    elt.autoplay = true;
+    elt.controls = true;
     elt.srcObject = stream;
-    elt.setAttribute("id", "x" + id);
     document.body.appendChild(elt);
-    conn.addEventListener("iceconnectionstatechange", () => {
-      if (conn.iceConnectionState != "connected") {
-        conn.close();
-        document.body.removeChild(elt);
-      }
-    });
   };
 }
 
@@ -49,7 +40,7 @@ class Call {
   constructor(sock, myId, theirId) {
     const conn = new RTCPeerConnection(_peerConnectionConfig);
 
-    conn.ontrack = getTrackHandler(theirId, conn);
+    conn.ontrack = getTrackHandler(theirId);
 
     conn.addEventListener("icecandidate", async (e) => {
       console.log(`${myId}: Emitting ice candidate for ${theirId}`);

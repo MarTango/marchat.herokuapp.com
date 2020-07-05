@@ -1,26 +1,36 @@
-import { IncomingCall, OutgoingCall } from "./src/call.js";
+import { IncomingCall, OutgoingCall } from "./call.js";
 // import Room from "room.js";
 
 /** @type {[string: RTCPeerConnection]} */
 const OUTGOING_CALLS = {};
 const INCOMING_CALLS = {};
 const PENDING_OUTGOING_CALLS = {};
-
-const messages = document.querySelector("ul#messages");
-const message = document.querySelector("#m");
+/** @type {HTMLUListElement} */
+const MESSAGES = document.querySelector("ul#messages");
+/** @type {HTMLInputElement} */
+const MESSAGE = document.querySelector("input#m");
 
 function addMessage(message) {
   const elt = document.createElement("li");
   elt.innerText = message;
-  messages.appendChild(elt);
+  MESSAGES.appendChild(elt);
 }
 
-window.addEventListener("load", async () => {
+window.onload = async () => {
+  /** @type {SocketIO.Socket} */
   let socket = io();
-  registerSocketBaseHandlers(socket);
+  socket.on("chatmsg", addMessage);
+  document.querySelector("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    socket.send(MESSAGE.value);
+    MESSAGE.value = "";
+  });
 
   const localStream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
+    audio: {
+      noiseSuppression: true,
+      echoCancellation: true,
+    },
     video: true,
   });
 
@@ -67,7 +77,7 @@ window.addEventListener("load", async () => {
         delete coll[sid];
       }
     }
-    const elt = document.querySelector(`audio#x${sid}`);
+    const elt = document.querySelector(`video#x${sid}`);
     if (elt) {
       elt.remove();
     }
@@ -75,7 +85,6 @@ window.addEventListener("load", async () => {
 
   socket.on("offer", async (e) => {
     const offer = JSON.parse(e);
-
     if (offer.to != socket.id) {
       return;
     }
@@ -97,18 +106,4 @@ window.addEventListener("load", async () => {
       delete PENDING_OUTGOING_CALLS[ans.from];
     }
   });
-});
-
-function registerSocketBaseHandlers(socket) {
-  socket.on("chatmsg", addMessage);
-
-  document.querySelector("form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    socket.send(message.value);
-    message.value = "";
-  });
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+};

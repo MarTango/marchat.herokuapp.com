@@ -1,40 +1,31 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8" />
     <meta name="description" content="Simple WebRTC chatroom" />
 
     <title>MarChat</title>
-    <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
-    <link href="assets/main.css" rel="stylesheet"/>
-
+    <link
+      href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link href="assets/main.css" rel="stylesheet" />
   </head>
   <body>
-
     <div class="container">
-
       <div id="messaging">
-
-        <ul id="messages"> </ul>
-
+        <ul id="messages"></ul>
         <form action="">
-
-          <input id="m" type="text" value=""/><button>Send</button>
-
+          <input id="m" type="text" value="" /><button>Send</button>
         </form>
-        
       </div>
 
       <div>
-
         <label for="muted">Mute mic?</label>
-
-        <input id="muted" type="checkbox" value=""/>
-
+        <input id="muted" type="checkbox" value="" />
       </div>
-
-    </div>    
-
+    </div>
   </body>
 
   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
