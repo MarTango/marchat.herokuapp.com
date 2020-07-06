@@ -23,7 +23,7 @@ async def onconnect(sid, environ):
 
 @socketio.on("disconnect")
 async def ondisconnect(sid):
-    await socketio.emit("disconnect", sid)
+    await socketio.emit("disconnect", sid, skip_sid=sid)
 
 
 @socketio.on("message")
@@ -33,17 +33,17 @@ async def onmessage(sid, msg):
 
 @socketio.on("offer")
 async def onoffer(sid, desc):
-    await socketio.emit("offer", desc)
+    await socketio.emit("offer", desc, skip_sid=sid)
 
 
 @socketio.on("answer")
 async def onanswer(sid, answer):
-    await socketio.emit("answer", answer)
+    await socketio.emit("answer", answer, skip_sid=sid)
 
 
 @socketio.on("icecandidate")
 async def onice(sid, candidate):
-    await socketio.emit("icecandidate", candidate)
+    await socketio.emit("icecandidate", candidate, skip_sid=sid)
 
 
 if __name__ == "__main__":
