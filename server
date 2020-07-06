@@ -7,7 +7,7 @@ import socketio  # type: ignore
 
 app = sanic.Sanic(__name__)
 
-sanic_cors.CORS(app, supports_credentials=True)
+sanic_cors.CORS(app, resources=r"/socket.io/*", supports_credentials=True)
 
 app.static("/", "web")
 app.static("/", "web/index.html")
