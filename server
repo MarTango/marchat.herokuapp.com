@@ -2,14 +2,17 @@
 import os
 
 import sanic  # type: ignore
+import sanic_cors  # type: ignore
 import socketio  # type: ignore
 
 app = sanic.Sanic(__name__)
 
+sanic_cors.CORS(app, supports_credentials=True)
+
 app.static("/", "web")
 app.static("/", "web/index.html")
 
-socketio = socketio.AsyncServer(async_mode="sanic")
+socketio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
 socketio.attach(app)
 
 
