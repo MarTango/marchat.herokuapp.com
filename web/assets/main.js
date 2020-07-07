@@ -93,7 +93,7 @@ window.onload = async () => {
     receiver.addStream(localStream);
     INCOMING_CALLS[offer.from] = receiver;
 
-    await socket.emit("answer", JSON.stringify(await receiver.accept(offer)));
+    socket.emit("answer", JSON.stringify(await receiver.accept(offer)));
   });
 
   socket.on("answer", async (e) => {

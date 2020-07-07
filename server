@@ -12,7 +12,9 @@ sanic_cors.CORS(app, resources=r"/socket.io/*", supports_credentials=True)
 app.static("/", "web")
 app.static("/", "web/index.html")
 
-socketio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
+socketio = socketio.AsyncServer(
+    async_mode="sanic", cors_allowed_origins=[], cookie=None
+)
 socketio.attach(app)
 
 
