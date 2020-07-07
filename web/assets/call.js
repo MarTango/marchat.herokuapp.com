@@ -22,7 +22,7 @@ function getTrackHandler(id) {
     }
     STREAMS.push(stream);
 
-    const elt = document.createElement("video");
+    const elt = document.createElement("audio");
     elt.id = `x${id}`;
     elt.autoplay = true;
     elt.controls = true;

@@ -31,7 +31,6 @@ window.onload = async () => {
       noiseSuppression: true,
       echoCancellation: true,
     },
-    video: true,
   });
 
   document.querySelector("input#muted").addEventListener("change", function () {
