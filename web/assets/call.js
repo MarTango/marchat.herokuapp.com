@@ -40,6 +40,20 @@ class Call {
   constructor(sock, myId, theirId) {
     const conn = new RTCPeerConnection(_peerConnectionConfig);
 
+    const datachannel = conn.createDataChannel("testing");
+    const rand = Math.random().toString();
+
+    datachannel.onopen = () => {
+      setInterval(() => {
+        datachannel.send(`whatsup-${rand}`);
+      }, 500);
+    };
+
+    conn.ondatachannel = (e) => {
+      console.log("I got a datachannel", e.channel);
+      e.channel.onmessage = (e) => console.log(e.data);
+    };
+
     conn.ontrack = getTrackHandler(theirId);
 
     conn.addEventListener("icecandidate", async (e) => {
