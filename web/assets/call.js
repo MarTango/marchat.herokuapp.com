@@ -38,21 +38,8 @@ class Call {
    * @param {string} theirId
    */
   constructor(sock, myId, theirId) {
+    console.log(`${myId} Creating connection for ${theirId}`);
     const conn = new RTCPeerConnection(_peerConnectionConfig);
-
-    const datachannel = conn.createDataChannel("testing");
-    const rand = Math.random().toString();
-
-    datachannel.onopen = () => {
-      setInterval(() => {
-        datachannel.send(`whatsup-${rand}`);
-      }, 500);
-    };
-
-    conn.ondatachannel = (e) => {
-      console.log("I got a datachannel", e.channel);
-      e.channel.onmessage = (e) => console.log(e.data);
-    };
 
     conn.ontrack = getTrackHandler(theirId);
 
@@ -74,6 +61,7 @@ class Call {
   }
 
   addStream(stream) {
+    console.log(`${this.from} adding track for ${this.to}`);
     stream.getTracks().forEach((t) => this.conn.addTrack(t, stream));
   }
 
@@ -88,6 +76,7 @@ export class IncomingCall extends Call {
    */
   async accept(offer) {
     let c = this.conn;
+    console.log(`${this.from} accepting offer from ${this.to}`);
     await c.setRemoteDescription(offer.desc);
     const desc = await c.createAnswer();
     await c.setLocalDescription(desc);
@@ -102,12 +91,14 @@ export class IncomingCall extends Call {
 
 export class OutgoingCall extends Call {
   async accept(answer) {
+    console.log(`${this.from} accepting answer from ${this.to}`);
     let c = this.conn;
     await c.setRemoteDescription(answer.desc);
   }
 
   async offer() {
     const c = this.conn;
+    console.log(`${this.from} creating offer for ${this.to}`);
     const desc = await c.createOffer();
 
     await c.setLocalDescription(desc);

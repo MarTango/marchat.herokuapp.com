@@ -47,6 +47,7 @@ window.onload = async () => {
 
     for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
       if (coll[d.from]) {
+        console.log(`${d.to} adding candidate from ${d.from}`);
         await coll[d.from].conn.addIceCandidate(d.candidate);
       }
     }
@@ -62,6 +63,9 @@ window.onload = async () => {
 
   socket.on("connect", async (sid) => {
     addMessage("A user connected");
+    if (!sid) {
+      return;
+    }
     const outgoingCall = new OutgoingCall(socket, socket.id, sid);
     outgoingCall.addStream(localStream);
     PENDING_OUTGOING_CALLS[sid] = outgoingCall;
@@ -96,7 +100,6 @@ window.onload = async () => {
   });
 
   socket.on("answer", async (e) => {
-    console.log("They answered my call");
     const ans = JSON.parse(e);
     // If the answer is to me, register it
     if (ans.to == socket.id && PENDING_OUTGOING_CALLS[ans.from]) {
