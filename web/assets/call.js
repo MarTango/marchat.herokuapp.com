@@ -33,11 +33,11 @@ function getTrackHandler(id) {
 
 class Call {
   /**
-   * @param {RTCPeerConnection} conn
+   * @param {(msg: any) => Promise<void>} emit
    * @param {string} myId
    * @param {string} theirId
    */
-  constructor(sock, myId, theirId) {
+  constructor(emit, myId, theirId) {
     console.log(`${myId} Creating connection for ${theirId}`);
     const conn = new RTCPeerConnection(_peerConnectionConfig);
 
@@ -45,14 +45,11 @@ class Call {
 
     conn.addEventListener("icecandidate", async (e) => {
       console.log(`${myId}: Emitting ice candidate for ${theirId}`);
-      await sock.emit(
-        "icecandidate",
-        JSON.stringify({
-          from: myId,
-          to: theirId,
-          candidate: e.candidate,
-        })
-      );
+      await emit({
+        from: myId,
+        to: theirId,
+        candidate: e.candidate,
+      });
     });
 
     this.conn = conn;
@@ -72,19 +69,19 @@ class Call {
 
 export class IncomingCall extends Call {
   /**
-   * @param {{from: string, desc: RTCSessionDescriptionInit}} offer
+   * @param {RTCSessionDescriptionInit} offer
    */
   async accept(offer) {
     let c = this.conn;
     console.log(`${this.from} accepting offer from ${this.to}`);
-    await c.setRemoteDescription(offer.desc);
+    await c.setRemoteDescription(offer);
     const desc = await c.createAnswer();
     await c.setLocalDescription(desc);
 
     return {
-      to: offer.from, // should == this.to
+      to: this.to, // should == this.to
       from: this.from,
-      desc,
+      answer: desc,
     };
   }
 }
@@ -92,8 +89,7 @@ export class IncomingCall extends Call {
 export class OutgoingCall extends Call {
   async accept(answer) {
     console.log(`${this.from} accepting answer from ${this.to}`);
-    let c = this.conn;
-    await c.setRemoteDescription(answer.desc);
+    await this.conn.setRemoteDescription(answer);
   }
 
   async offer() {
@@ -105,7 +101,7 @@ export class OutgoingCall extends Call {
     return {
       to: this.to,
       from: this.from,
-      desc,
+      offer: desc,
     };
   }
 }

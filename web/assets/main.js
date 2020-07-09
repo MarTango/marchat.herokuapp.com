@@ -16,13 +16,16 @@ function addMessage(message) {
   MESSAGES.appendChild(elt);
 }
 
+const ROOM = "bravo";
+
 window.onload = async () => {
   /** @type {SocketIO.Socket} */
-  let socket = io();
-  socket.on("chatmsg", addMessage);
+  const sock = io();
+  const emit = (msg) => sock.emit(ROOM, msg);
+  sock.on("chatmsg", addMessage);
   document.querySelector("form").addEventListener("submit", (e) => {
     e.preventDefault();
-    socket.send(MESSAGE.value);
+    sock.send(MESSAGE.value);
     MESSAGE.value = "";
   });
 
@@ -39,17 +42,30 @@ window.onload = async () => {
     });
   });
 
-  socket.on("icecandidate", async (e) => {
-    const d = JSON.parse(e);
-    if (d.to != socket.id) {
+  sock.on(ROOM, async ({ to, from, candidate, offer, answer }) => {
+    if (to != sock.id) {
       return;
     }
-
-    for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
-      if (coll[d.from]) {
-        console.log(`${d.to} adding candidate from ${d.from}`);
-        await coll[d.from].conn.addIceCandidate(d.candidate);
+    if (candidate) {
+      for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
+        if (coll[from]) {
+          console.log(`${to} adding candidate from ${from}`);
+          await coll[from].conn.addIceCandidate(candidate);
+        }
       }
+    } else if (offer) {
+      const receiver = new IncomingCall(emit, sock.id, from);
+      receiver.addStream(localStream);
+      INCOMING_CALLS[from] = receiver;
+      emit(await receiver.accept(offer));
+    } else if (answer) {
+      const call = PENDING_OUTGOING_CALLS[from];
+      if (!call) {
+        return;
+      }
+      await call.accept(answer);
+      OUTGOING_CALLS[from] = call;
+      delete PENDING_OUTGOING_CALLS[from];
     }
   });
 
@@ -57,21 +73,21 @@ window.onload = async () => {
   setInterval(() => {
     Object.keys(PENDING_OUTGOING_CALLS).forEach(async (sid) => {
       const call = PENDING_OUTGOING_CALLS[sid];
-      socket.emit("offer", JSON.stringify(await call.offer()));
+      emit(await call.offer());
     });
   }, 1000);
 
-  socket.on("connect", async (sid) => {
+  sock.on("connect", async (sid) => {
     addMessage("A user connected");
     if (!sid) {
       return;
     }
-    const outgoingCall = new OutgoingCall(socket, socket.id, sid);
+    const outgoingCall = new OutgoingCall(emit, sock.id, sid);
     outgoingCall.addStream(localStream);
     PENDING_OUTGOING_CALLS[sid] = outgoingCall;
   });
 
-  socket.on("disconnect", async (sid) => {
+  sock.on("disconnect", async (sid) => {
     addMessage("A user disconnected");
     for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
       if (coll[sid]) {
@@ -83,29 +99,6 @@ window.onload = async () => {
     const elt = document.querySelector(`video#x${sid}`);
     if (elt) {
       elt.remove();
-    }
-  });
-
-  socket.on("offer", async (e) => {
-    const offer = JSON.parse(e);
-    if (offer.to != socket.id) {
-      return;
-    }
-
-    const receiver = new IncomingCall(socket, socket.id, offer.from);
-    receiver.addStream(localStream);
-    INCOMING_CALLS[offer.from] = receiver;
-
-    socket.emit("answer", JSON.stringify(await receiver.accept(offer)));
-  });
-
-  socket.on("answer", async (e) => {
-    const ans = JSON.parse(e);
-    // If the answer is to me, register it
-    if (ans.to == socket.id && PENDING_OUTGOING_CALLS[ans.from]) {
-      await PENDING_OUTGOING_CALLS[ans.from].accept(ans);
-      OUTGOING_CALLS[ans.from] = PENDING_OUTGOING_CALLS[ans.from];
-      delete PENDING_OUTGOING_CALLS[ans.from];
     }
   });
 };
