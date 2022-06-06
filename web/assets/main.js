@@ -16,6 +16,9 @@ function addMessage(message) {
   MESSAGES.appendChild(elt);
 }
 
+const peerConnectionConfig = {
+  iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+};
 const ROOM = "bravo";
 
 window.onload = async () => {
@@ -30,6 +33,7 @@ window.onload = async () => {
   });
 
   const localStream = await navigator.mediaDevices.getUserMedia({
+    video: true,
     audio: {
       noiseSuppression: true,
       echoCancellation: true,
@@ -42,48 +46,12 @@ window.onload = async () => {
     });
   });
 
-  sock.on(ROOM, async ({ to, from, candidate, offer, answer }) => {
-    if (to != sock.id) {
-      return;
-    }
-    if (candidate) {
-      for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
-        if (coll[from]) {
-          console.log(`${to} adding candidate from ${from}`);
-          await coll[from].conn.addIceCandidate(candidate);
-        }
-      }
-    } else if (offer) {
-      const receiver = new IncomingCall(emit, sock.id, from);
-      receiver.addStream(localStream);
-      INCOMING_CALLS[from] = receiver;
-      emit(await receiver.accept(offer));
-    } else if (answer) {
-      const call = PENDING_OUTGOING_CALLS[from];
-      if (!call) {
-        return;
-      }
-      await call.accept(answer);
-      OUTGOING_CALLS[from] = call;
-      delete PENDING_OUTGOING_CALLS[from];
-    }
-  });
-
-  // Check PENDING_OUTGOING_CALLS for anything we need to resend.
-  setInterval(() => {
-    Object.keys(PENDING_OUTGOING_CALLS).forEach(async (sid) => {
-      const call = PENDING_OUTGOING_CALLS[sid];
-      emit(await call.offer());
-    });
-  }, 1000);
-
   sock.on("connect", async (sid) => {
     addMessage("A user connected");
     if (!sid) {
       return;
     }
-    const outgoingCall = new OutgoingCall(emit, sock.id, sid);
-    outgoingCall.addStream(localStream);
+    const outgoingCall = new OutgoingCall(emit, sock.id, sid, localStream);
     PENDING_OUTGOING_CALLS[sid] = outgoingCall;
   });
 
@@ -101,4 +69,38 @@ window.onload = async () => {
       elt.remove();
     }
   });
+
+  sock.on(ROOM, async ({ to, from, candidate, offer, answer }) => {
+    if (to != sock.id) {
+      return;
+    }
+    if (candidate) {
+      for (const coll of [OUTGOING_CALLS, INCOMING_CALLS]) {
+        if (coll[from]) {
+          console.log(`${to} adding candidate from ${from}`);
+          await coll[from].conn.addIceCandidate(candidate);
+        }
+      }
+    } else if (offer) {
+      const receiver = new IncomingCall(emit, sock.id, from, localStream);
+      INCOMING_CALLS[from] = receiver;
+      await receiver.accept(offer);
+    } else if (answer) {
+      const call = PENDING_OUTGOING_CALLS[from];
+      if (!call) {
+        return;
+      }
+      await call.accept(answer);
+      OUTGOING_CALLS[from] = call;
+      delete PENDING_OUTGOING_CALLS[from];
+    }
+  });
+
+  // Check PENDING_OUTGOING_CALLS for anything we need to resend.
+  setInterval(() => {
+    Object.keys(PENDING_OUTGOING_CALLS).forEach(async (sid) => {
+      const call = PENDING_OUTGOING_CALLS[sid];
+      await call.offer();
+    });
+  }, 1000);
 };

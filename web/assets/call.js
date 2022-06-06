@@ -1,35 +1,20 @@
-const _peerConnectionConfig = {
-  iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: ["stun:stun.l.google.com:19302"] },
+    {
+      urls: ["turn:relay.backups.cz"],
+      credential: "webrtc",
+      username: "webrtc",
+    },
+    // {
+    //   urls: ["turn:numb.viagenie.ca"],
+    //   credential: "muazkh",
+    //   username: "webrtc@live.com",
+    // },
+  ],
 };
 
 const STREAMS = [];
-
-/**
- * Return a function that does:
- *
- * Create an <audio> element, set its srcObject as the stream attached
- * to e, then append the element to the document's body.
- *
- * @param {RTCTrackEvent} e
- */
-function getTrackHandler(id) {
-  return function (e) {
-    console.log("Got track!");
-    const stream = e.streams[0];
-
-    if (STREAMS.indexOf(stream) !== -1) {
-      return;
-    }
-    STREAMS.push(stream);
-
-    const elt = document.createElement("audio");
-    elt.id = `x${id}`;
-    elt.autoplay = true;
-    elt.controls = true;
-    elt.srcObject = stream;
-    document.body.appendChild(elt);
-  };
-}
 
 class Call {
   /**
@@ -37,9 +22,9 @@ class Call {
    * @param {string} myId
    * @param {string} theirId
    */
-  constructor(emit, myId, theirId) {
+  constructor(emit, myId, theirId, stream) {
     console.log(`${myId} Creating connection for ${theirId}`);
-    const conn = new RTCPeerConnection(_peerConnectionConfig);
+    const conn = new RTCPeerConnection(RTC_CONFIG);
 
     conn.ontrack = getTrackHandler(theirId);
 
@@ -55,6 +40,8 @@ class Call {
     this.conn = conn;
     this.from = myId;
     this.to = theirId;
+    this.emit = emit;
+    this.addStream(stream);
   }
 
   addStream(stream) {
@@ -78,11 +65,11 @@ export class IncomingCall extends Call {
     const desc = await c.createAnswer();
     await c.setLocalDescription(desc);
 
-    return {
+    this.emit({
       to: this.to, // should == this.to
       from: this.from,
       answer: desc,
-    };
+    });
   }
 }
 
@@ -98,10 +85,37 @@ export class OutgoingCall extends Call {
     const desc = await c.createOffer();
 
     await c.setLocalDescription(desc);
-    return {
+    this.emit({
       to: this.to,
       from: this.from,
       offer: desc,
-    };
+    });
   }
+}
+
+/**
+ * Return a function that does:
+ *
+ * Create an <audio> element, set its srcObject as the stream attached
+ * to e, then append the element to the document's body.
+ *
+ * @param {RTCTrackEvent} e
+ */
+function getTrackHandler(id) {
+  return function (e) {
+    console.log("Got track!");
+    const stream = e.streams[0];
+
+    if (STREAMS.indexOf(stream) !== -1) {
+      return;
+    }
+    STREAMS.push(stream);
+
+    const elt = document.createElement("video");
+    elt.id = `x${id}`;
+    elt.autoplay = true;
+    elt.controls = true;
+    elt.srcObject = stream;
+    document.body.appendChild(elt);
+  };
 }

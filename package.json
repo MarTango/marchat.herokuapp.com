@@ -1,0 +1,26 @@
+{
+  "name": "marchat.herokuapp.com",
+  "version": "0.0.0",
+  "description": "websocket server",
+  "main": "server",
+  "dependencies": {
+    "socket.io-client": "^2.3.0",
+    "webrtc-adapter": "^7.6.3"
+  },
+  "devDependencies": {
+    "@types/socket.io": "^2.1.8"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/martango/marchat.herokuapp.com.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/martango/marchat.herokuapp.com/issues"
+  },
+  "homepage": "https://github.com/martango/marchat.herokuapp.com#readme"
+}
