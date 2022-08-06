@@ -6,7 +6,7 @@ authors = ["Martin Tang <martin.tang365@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-sanic = "^19.12.2"
+sanic = "^20.12.7"
 python-socketio = "^4.5.1"
 sanic-cors = "^0.10.0"
 
